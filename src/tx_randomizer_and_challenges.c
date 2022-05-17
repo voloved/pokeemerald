@@ -257,7 +257,10 @@ void NuzlockeDeleteFaintedPartyPokemon(void) // @Kurausukun
                 monItem = GetMonData(pokemon, MON_DATA_HELD_ITEM, NULL);
 
                 if (monItem != ITEM_NONE)
+                {
                     AddBagItem(monItem, 1);
+                    SetMonData(pokemon, MON_DATA_HELD_ITEM, ITEM_NONE);
+                }
                 NuzlockeDeletePartyMon(i);
             }
         }
@@ -478,7 +481,7 @@ void TestRandomizerValues(u8 type)
         for (j=0; j<NUM_SPECIES; j++)
         {
         //tmp = RandomSeededModulo(j, NUM_SPECIES);
-        tmp = GetSpeciesRandomSeeded(j, type);
+        tmp = GetSpeciesRandomSeeded(j, type, 0);
         
         real_j = j % 10;
         array[real_j] = tmp;
