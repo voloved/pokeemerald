@@ -51,8 +51,8 @@
 #include "constants/region_map_sections.h" //tx_randomizer_and_challenges
 
 #ifdef GBA_PRINTF //tx_randomizer_and_challenges
-    //#include "printf.h"
-    //#include "mgba.h"
+    #include "printf.h"
+    #include "mgba.h"
 #endif
 
 enum {
