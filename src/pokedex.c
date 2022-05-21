@@ -4421,7 +4421,7 @@ static void HighlightSubmenuScreenSelectBarItem(u8 a, u16 b)
 }
 
 #define tState         data[0]
-#define tDexNum        data[1]
+#define tSpecies       data[1]
 #define tPalTimer      data[2]
 #define tMonSpriteId   data[3]
 #define tOtIdLo        data[12]
@@ -4429,12 +4429,12 @@ static void HighlightSubmenuScreenSelectBarItem(u8 a, u16 b)
 #define tPersonalityLo data[14]
 #define tPersonalityHi data[15]
 
-u8 DisplayCaughtMonDexPage(u16 dexNum, u32 otId, u32 personality)
+u8 DisplayCaughtMonDexPage(u16 species, u32 otId, u32 personality)
 {
     u8 taskId = CreateTask(Task_DisplayCaughtMonDexPage, 0);
 
     gTasks[taskId].tState = 0;
-    gTasks[taskId].tDexNum = dexNum;
+    gTasks[taskId].tSpecies = species;
     gTasks[taskId].tOtIdLo = otId;
     gTasks[taskId].tOtIdHi = otId >> 16;
     gTasks[taskId].tPersonalityLo = personality;
@@ -4445,7 +4445,8 @@ u8 DisplayCaughtMonDexPage(u16 dexNum, u32 otId, u32 personality)
 static void Task_DisplayCaughtMonDexPage(u8 taskId)
 {
     u8 spriteId;
-    u16 dexNum = gTasks[taskId].tDexNum;
+    u16 species = gTasks[taskId].tSpecies;
+    u16 dexNum = SpeciesToNationalPokedexNum(species);
 
     switch (gTasks[taskId].tState)
     {
@@ -4469,11 +4470,18 @@ static void Task_DisplayCaughtMonDexPage(u8 taskId)
         sPokedexView = AllocZeroed(sizeof(struct PokedexView)); //for type icons
         ResetPokedexView(sPokedexView);
 
+        #ifdef POKEMON_EXPANSION
+        if (gFormSpeciesIdTables[species] != NULL)
+            sPokedexView->formSpecies = species;
+        else
+            sPokedexView->formSpecies = 0;
+        #endif
+
         LoadTilesetTilemapHGSS(INFO_SCREEN);
         FillWindowPixelBuffer(WIN_INFO, PIXEL_FILL(0));
         PutWindowTilemap(WIN_INFO);
         PutWindowTilemap(WIN_FOOTPRINT);
-        DrawFootprint(WIN_FOOTPRINT, gTasks[taskId].tDexNum);
+        DrawFootprint(WIN_FOOTPRINT, dexNum);
         CopyWindowToVram(WIN_FOOTPRINT, COPYWIN_GFX);
         ResetPaletteFade();
         LoadPokedexBgPalette(FALSE);
@@ -4493,7 +4501,11 @@ static void Task_DisplayCaughtMonDexPage(u8 taskId)
         gTasks[taskId].tState++;
         break;
     case 4:
+        #ifndef POKEMON_EXPANSION
         spriteId = CreateMonSpriteFromNationalDexNumber(dexNum, MON_PAGE_X, MON_PAGE_Y, 0);
+        #else
+        spriteId = CreateMonPicSprite(species, 0, ((u16)gTasks[taskId].tPersonalityHi << 16) | (u16)gTasks[taskId].tPersonalityLo, TRUE, MON_PAGE_X, MON_PAGE_Y, 0, TAG_NONE);
+        #endif
         gSprites[spriteId].oam.priority = 0;
         BeginNormalPaletteFade(PALETTES_ALL, 0, 0x10, 0, RGB_BLACK);
         SetVBlankCallback(gPokedexVBlankCB);
@@ -4567,7 +4579,7 @@ static void Task_ExitCaughtMonPage(u8 taskId)
         if (buffer)
             Free(buffer);
 
-        species = NationalPokedexNumToSpecies(gTasks[taskId].tDexNum);
+        species = gTasks[taskId].tSpecies;
         otId = ((u16)gTasks[taskId].tOtIdHi << 16) | (u16)gTasks[taskId].tOtIdLo;
         personality = ((u16)gTasks[taskId].tPersonalityHi << 16) | (u16)gTasks[taskId].tPersonalityLo;
         paletteNum = gSprites[gTasks[taskId].tMonSpriteId].oam.paletteNum;
@@ -5348,8 +5360,12 @@ static u32 GetPokedexMonPersonality(u16 species)
 
 u16 CreateMonSpriteFromNationalDexNumber(u16 nationalNum, s16 x, s16 y, u16 paletteSlot)
 {
-    nationalNum = NationalPokedexNumToSpecies(nationalNum);
+    nationalNum = NationalPokedexNumToSpeciesHGSS(nationalNum);
+    #ifndef POKEMON_EXPANSION
     return CreateMonPicSprite_HandleDeoxys(nationalNum, SHINY_ODDS, GetPokedexMonPersonality(nationalNum), TRUE, x, y, paletteSlot, TAG_NONE);
+    #else
+    return CreateMonPicSprite(nationalNum, SHINY_ODDS, GetPokedexMonPersonality(nationalNum), TRUE, x, y, paletteSlot, TAG_NONE);
+    #endif
 }
 
 static u16 CreateSizeScreenTrainerPic(u16 species, s16 x, s16 y, s8 paletteSlot)
@@ -5364,7 +5380,7 @@ bool8  SpeciesCanLearnLvlUpMove(u16 species, u16 move) //Move search PokedexPlus
     #if defined (BATTLE_ENGINE) || defined (POKEMON_EXPANSION)
         for (j = 0; j < MAX_LEVEL_UP_MOVES && gLevelUpLearnsets[species][j].move != LEVEL_UP_END; j++)
         {
-            if (move == (gLevelUpLearnsets[species][j].move & LEVEL_UP_MOVE_ID))
+            if (move == (gLevelUpLearnsets[species][j].move))
             {
                 return TRUE;
             }
@@ -5493,7 +5509,7 @@ static int DoPokedexSearch(u8 dexMode, u8 order, u8 abcGroup, u8 bodyColor, u8 t
         tutorMoveId = 0xFF;
         for (i = 0; i < TUTOR_MOVE_COUNT; i++)
         {
-            if(move == gTutorMoves[i])
+            if (move == gTutorMoves[i])
             {
                 tutorMoveId = i;
                 break;
@@ -5503,7 +5519,7 @@ static int DoPokedexSearch(u8 dexMode, u8 order, u8 abcGroup, u8 bodyColor, u8 t
         tmMoveId = 0xFF;
         for (i = 0; i < NUM_TECHNICAL_MACHINES + NUM_HIDDEN_MACHINES; i++)
         {
-            if(move == ItemIdToBattleMoveId(ITEM_TM01_FOCUS_PUNCH + i))
+            if (move == ItemIdToBattleMoveId(ITEM_TM01_FOCUS_PUNCH + i))
             {
                 tmMoveId = (ITEM_TM01_FOCUS_PUNCH + i);
                 break;
@@ -5514,6 +5530,12 @@ static int DoPokedexSearch(u8 dexMode, u8 order, u8 abcGroup, u8 bodyColor, u8 t
         {
             species = NationalPokedexNumToSpecies(sPokedexView->pokedexList[i].dexNum);
 
+            #ifdef POKEMON_EXPANSION
+            // Mega pokemon don't have distinct learnsets from their base form; so use base species for calculation
+            if (species >= SPECIES_VENUSAUR_MEGA && species <= SPECIES_GROUDON_PRIMAL)
+                species = GetFormSpeciesId(species, 0);
+            #endif
+
             //LevelUp
             if (SpeciesCanLearnLvlUpMove(species, move))
             {
@@ -5522,21 +5544,21 @@ static int DoPokedexSearch(u8 dexMode, u8 order, u8 abcGroup, u8 bodyColor, u8 t
                 continue;
             }
             //TMHM
-            if(CanSpeciesLearnTMHM(species, tmMoveId))
+            if (CanSpeciesLearnTMHM(species, tmMoveId))
             {
                 sPokedexView->pokedexList[resultsCount] = sPokedexView->pokedexList[i];
                 resultsCount++;
                 continue;
             }
             //Tutor
-            if(CanLearnTutorMove(species, tutorMoveId))
+            if (CanLearnTutorMove(species, tutorMoveId))
             {
                 sPokedexView->pokedexList[resultsCount] = sPokedexView->pokedexList[i];
                 resultsCount++;
                 continue;
             }
             //EGGs
-            if(SpeciesCanLearnEggMove(species, move))
+            if (SpeciesCanLearnEggMove(species, move))
             {
                 sPokedexView->pokedexList[resultsCount] = sPokedexView->pokedexList[i];
                 resultsCount++;
@@ -6638,7 +6660,7 @@ static void Task_LoadStatsScreen(u8 taskId)
         sPokedexView->numEggMoves = 0;
         sPokedexView->numLevelUpMoves = 0;
         sPokedexView->numTMHMMoves = 0;
-        if(CalculateMoves())
+        if (CalculateMoves())
             gMain.state++;
         break;
     case 5:
@@ -6834,12 +6856,22 @@ static bool8 CalculateMoves(void)
     u16 statsMovesTMHM[NUM_TECHNICAL_MACHINES + NUM_HIDDEN_MACHINES] = {0};
     u16 statsMovesTutor[TUTOR_MOVE_COUNT] = {0};
 
-    u8 numEggMoves = GetEggMovesSpecies(species, statsMovesEgg);
-    u8 numLevelUpMoves = GetLevelUpMovesBySpecies(species, statsMovesLevelUp);
+    u8 numEggMoves = 0;
+    u8 numLevelUpMoves = 0;
     u8 numTMHMMoves = 0;
     u8 numTutorMoves = 0;
     u16 movesTotal = 0;
     u8 i,j;
+
+    #ifdef POKEMON_EXPANSION
+    // Mega pokemon don't have distinct learnsets from their base form; so use base species for calculation
+    if (species >= SPECIES_VENUSAUR_MEGA && species <= SPECIES_GROUDON_PRIMAL)
+        species = GetFormSpeciesId(species, 0);
+    #endif
+
+    //Calculate amount of Egg and LevelUp moves
+    numEggMoves = GetEggMovesSpecies(species, statsMovesEgg);
+    numLevelUpMoves = GetLevelUpMovesBySpecies(species, statsMovesLevelUp);
 
     //Egg moves
     for (i=0; i < numEggMoves; i++)
@@ -6858,7 +6890,7 @@ static bool8 CalculateMoves(void)
     //TMHM moves
     for (j = 0; j < NUM_TECHNICAL_MACHINES + NUM_HIDDEN_MACHINES; j++)
     {
-        if(CanSpeciesLearnTMHM(species, j))
+        if (CanSpeciesLearnTMHM(species, j))
         {
             sStatsMoves[movesTotal] = ItemIdToBattleMoveId(ITEM_TM01_FOCUS_PUNCH + j);
             movesTotal++;
@@ -7965,7 +7997,7 @@ static void Task_HandleEvolutionScreenInput(u8 taskId)
 }
 static void HandleTargetSpeciesPrint(u8 taskId, u16 targetSpecies, u16 previousTargetSpecies, u8 base_x, u8 base_y, u8 base_y_offset, u8 base_i, bool8 isEevee)
 {
-    u8 maxI = 6;
+    u8 iterations = 6;
     bool8 seen = GetSetPokedexFlag(SpeciesToNationalPokedexNum(targetSpecies), FLAG_GET_SEEN);
 
     if (seen || !HGSS_HIDE_UNSEEN_EVOLUTION_NAMES)
@@ -7978,7 +8010,7 @@ static void HandleTargetSpeciesPrint(u8 taskId, u16 targetSpecies, u16 previousT
     //Print mon icon in the top row
     if (isEevee)
     {
-        maxI = 9;
+        iterations = 9;
         if (targetSpecies == previousTargetSpecies)
             return;
         #ifdef POKEMON_EXPANSION
@@ -7989,7 +8021,7 @@ static void HandleTargetSpeciesPrint(u8 taskId, u16 targetSpecies, u16 previousT
         #endif
     }
 
-    if(base_i < maxI) 
+    if (base_i < iterations) 
     {
         LoadMonIconPalette(targetSpecies); //Loads pallete for current mon
         #ifndef POKEMON_EXPANSION
@@ -8041,7 +8073,7 @@ static void HandlePreEvolutionSpeciesPrint(u8 taskId, u16 preSpecies, u16 specie
 
     PrintInfoScreenTextSmall(gStringVar3, base_x, base_y + base_y_offset*base_i); //evolution mon name
 
-    if(base_i < 3) 
+    if (base_i < 3) 
     {
         LoadMonIconPalette(preSpecies); //Loads pallete for current mon
         #ifndef POKEMON_EXPANSION
@@ -8069,15 +8101,16 @@ static u8 PrintPreEvolutions(u8 taskId, u16 species)
     u16 preEvolutionTwo = 0;
     u8 numPreEvolutions = 0;
 
+    #ifdef POKEMON_EXPANSION
+    bool8 isMega = FALSE;
+    sPokedexView->sEvoScreenData.isMega = FALSE;
+    #endif
+    
     #ifdef TX_RANDOMIZER_AND_CHALLENGES
     if (gSaveBlock1Ptr->tx_Random_Evolutions || gSaveBlock1Ptr->tx_Random_EvolutionMethods)
         return 0;
     #endif
 
-    #ifdef POKEMON_EXPANSION
-    bool8 isMega = FALSE;
-    sPokedexView->sEvoScreenData.isMega = FALSE;
-    #endif
 
     //Calculate previous evolution
     for (i = 0; i < NUM_SPECIES; i++)
@@ -8101,16 +8134,16 @@ static u8 PrintPreEvolutions(u8 taskId, u16 species)
     }
 
     #ifdef POKEMON_EXPANSION
-        if (isMega)
-        {
-            sPokedexView->numPreEvolutions = numPreEvolutions;
-            sPokedexView->sEvoScreenData.numAllEvolutions += numPreEvolutions;
-            sPokedexView->sEvoScreenData.isMega = isMega;
+    if (isMega)
+    {
+        sPokedexView->numPreEvolutions = numPreEvolutions;
+        sPokedexView->sEvoScreenData.numAllEvolutions += numPreEvolutions;
+        sPokedexView->sEvoScreenData.isMega = isMega;
 
-            CreateCaughtBallEvolutionScreen(preEvolutionOne, base_x - 9 - 8, base_y + base_y_offset*(numPreEvolutions - 1), 0);
-            HandlePreEvolutionSpeciesPrint(taskId, preEvolutionOne, species, base_x - 8, base_y, base_y_offset, numPreEvolutions - 1);
-            return numPreEvolutions;
-        }
+        CreateCaughtBallEvolutionScreen(preEvolutionOne, base_x - 9 - 8, base_y + base_y_offset*(numPreEvolutions - 1), 0);
+        HandlePreEvolutionSpeciesPrint(taskId, preEvolutionOne, species, base_x - 8, base_y, base_y_offset, numPreEvolutions - 1);
+        return numPreEvolutions;
+    }
     #endif
 
     //Calculate if previous evolution also has a previous evolution
@@ -8181,8 +8214,8 @@ static u8 PrintEvolutionTargetSpeciesAndMethod(u8 taskId, u16 species, u8 depth,
     bool8 isEevee = FALSE;
 
     #ifdef POKEMON_EXPANSION
-        if (sPokedexView->sEvoScreenData.isMega)
-            return 0;
+    if (sPokedexView->sEvoScreenData.isMega)
+        return 0;
     #endif
 
     StringCopy(gStringVar1, gSpeciesNames[species]);
@@ -8201,15 +8234,16 @@ static u8 PrintEvolutionTargetSpeciesAndMethod(u8 taskId, u16 species, u8 depth,
     for (i = 0; i < EVOS_PER_MON; i++)
     {
         #ifndef POKEMON_EXPANSION
-            if(gEvolutionTable[species][i].method != 0)
+            if (gEvolutionTable[species][i].method != 0)
                 times += 1;
         #endif
         #ifdef POKEMON_EXPANSION
-            if(gEvolutionTable[species][i].method != 0 && gEvolutionTable[species][i].method != EVO_MEGA_EVOLUTION)
+            if (gEvolutionTable[species][i].method != 0 && gEvolutionTable[species][i].method != EVO_MEGA_EVOLUTION)
                 times += 1;
         #endif
     }
     gTasks[taskId].data[3] = times;
+    sPokedexView->sEvoScreenData.numAllEvolutions += times;
 
     //If there are no evolutions print text
     if (times == 0 && depth == 0)
@@ -8226,6 +8260,7 @@ static u8 PrintEvolutionTargetSpeciesAndMethod(u8 taskId, u16 species, u8 depth,
 
         previousTargetSpecies = targetSpecies;
         targetSpecies = gEvolutionTable[species][i].targetSpecies;
+        sPokedexView->sEvoScreenData.targetSpecies[base_i] = targetSpecies;
         #ifdef TX_DIFFICULTY_CHALLENGES_USED
             if (gSaveBlock1Ptr->txRandEvolutions && targetSpecies != SPECIES_NONE) //tx_difficulty_challenges
                 targetSpecies = GetSpeciesRandomSeeded(targetSpecies, TX_RANDOM_T_EVO);
