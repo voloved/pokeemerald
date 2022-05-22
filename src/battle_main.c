@@ -238,6 +238,7 @@ EWRAM_DATA u16 gMoveToLearn = 0;
 EWRAM_DATA u8 gBattleMonForms[MAX_BATTLERS_COUNT] = {0};
 EWRAM_DATA u8 gAdditionalBattleInfoSubmenu = 0;
 EWRAM_DATA u8 gAdditionalBattleInfoSubmenuSplitIconId = MAX_SPRITES;
+EWRAM_DATA u8 gAdditionalBattleInfoSubmenuButtonPromptIds[2] = {MAX_SPRITES};
 
 void (*gPreBattleCallback1)(void);
 void (*gBattleMainFunc)(void);

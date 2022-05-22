@@ -14,11 +14,13 @@
 #include "item_menu.h"
 #include "link.h"
 #include "main.h"
+#include "menu.h"
 #include "m4a.h"
 #include "palette.h"
 #include "party_menu.h"
 #include "pokeball.h"
 #include "pokemon.h"
+#include "pokemon_summary_screen.h"
 #include "random.h"
 #include "recorded_battle.h"
 #include "reshow_battle_screen.h"
@@ -103,6 +105,7 @@ static void MoveSelectionDisplayPpNumber(void);
 static void MoveSelectionDisplayPpString(void);
 static void MoveSelectionDisplayMoveType(void);
 static void MoveSelectionDisplayMoveTypeEffectiveness(void);
+static void MoveSelectionDisplayMoveDescription(void);
 static void MoveSelectionDisplayMoveNames(void);
 static void MoveSelectionDisplayMoveData(void);
 static void HandleMoveSwitching(void);
@@ -487,7 +490,11 @@ static void HandleInputChooseMove(void)
         {
             gAdditionalBattleInfoSubmenu = FALSE;
             gSprites[gAdditionalBattleInfoSubmenuSplitIconId].invisible = TRUE;
+            FillWindowPixelBuffer(B_WIN_MOVE_DESCRIPTION, PIXEL_FILL(0));
+            ClearStdWindowAndFrame(B_WIN_MOVE_DESCRIPTION, FALSE);
+            CopyWindowToVram(B_WIN_MOVE_DESCRIPTION, COPYWIN_GFX);
             PlaySE(SE_SELECT);
+            TryRestoreABI_ButtonPrompt();
             MoveSelectionDisplayMoveNames();
             MoveSelectionCreateCursorAt(gMoveSelectionCursor[gActiveBattler], 0);
             MoveSelectionDisplayPpNumber();
@@ -555,10 +562,12 @@ static void HandleInputChooseMove(void)
 
             gSprites[gBattlerSpriteIds[gMultiUsePlayerCursor]].callback = SpriteCb_ShowAsMoveTarget;
         }
+        TryHideABI_ButtonPrompt();
     }
     else if (JOY_NEW(B_BUTTON) || gPlayerDpadHoldFrames > 59)
     {
         AdditionalBattleInfoDestroySplitIcon();
+        TryHideABI_ButtonPrompt();
         PlaySE(SE_SELECT);
         BtlController_EmitTwoReturnValues(BUFFER_B, 10, 0xFFFF);
         PlayerBufferExecCompleted();
@@ -632,9 +641,11 @@ static void HandleInputChooseMove(void)
     else if (JOY_NEW(START_BUTTON)) //AdditionalBattleInfo
     {
         gAdditionalBattleInfoSubmenu = TRUE;
+        TryHideABI_ButtonPrompt();
         MoveSelectionDestroyCursorAt(gMoveSelectionCursor[gActiveBattler]);
         MoveSelectionDisplayMoveData();
         MoveSelectionDisplayMoveTypeEffectiveness();
+        MoveSelectionDisplayMoveDescription();
     }
 }
 
@@ -1678,6 +1689,21 @@ static void MoveSelectionDisplayMoveTypeEffectiveness(void)
     }
 
     BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_MOVE_TYPE);
+}
+
+static void MoveSelectionDisplayMoveDescription(void)
+{
+    u8 *txtPtr;
+    struct ChooseMoveStruct *moveInfo = (struct ChooseMoveStruct*)(&gBattleBufferA[gActiveBattler][4]);
+    u16 move = moveInfo->moves[gMoveSelectionCursor[gActiveBattler]];
+
+    LoadMessageBoxAndBorderGfx();
+    DrawStdWindowFrameAdditionalBattleInfo(B_WIN_MOVE_DESCRIPTION);
+
+    StringCopy(gDisplayedStringBattle, gMoveDescriptionPointers[move -1]);
+
+    BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_MOVE_DESCRIPTION);
+    CopyWindowToVram(B_WIN_MOVE_DESCRIPTION, COPYWIN_FULL);
 }
 
 static void MoveSelectionCreateCursorAt(u8 cursorPosition, u8 arg1)
@@ -2785,6 +2811,7 @@ static void HandleChooseMoveAfterDma3(void)
         gBattle_BG0_X = 0;
         gBattle_BG0_Y = DISPLAY_HEIGHT * 2;
         gBattlerControllerFuncs[gActiveBattler] = HandleInputChooseMove;
+        TryRestoreABI_ButtonPrompt();
     }
 }
 
