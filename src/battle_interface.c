@@ -189,6 +189,59 @@ static void MoveBattleBarGraphically(u8 battlerId, u8 whichBar);
 static u8 CalcBarFilledPixels(s32 maxValue, s32 oldValue, s32 receivedValue, s32 *currValue, u8 *arg4, u8 scale);
 static void Debug_TestHealthBar_Helper(struct TestingBar *barInfo, s32 *arg1, u16 *arg2);
 
+#define TAG_SPLIT_ICONS 30004
+static const u16 sSplitIcons_Pal[] = INCBIN_U16("graphics/interface/split_icons.gbapal");
+static const u32 sSplitIcons_Gfx[] = INCBIN_U32("graphics/interface/split_icons.4bpp.lz");
+
+static const struct OamData sOamData_SplitIcons =
+{
+    .size = SPRITE_SIZE(16x16),
+    .shape = SPRITE_SHAPE(16x16),
+    .priority = 0,
+};
+static const struct CompressedSpriteSheet sSpriteSheet_SplitIcons =
+{
+    .data = sSplitIcons_Gfx,
+    .size = 16*16*3/2,
+    .tag = TAG_SPLIT_ICONS,
+};
+static const struct SpritePalette sSpritePal_SplitIcons =
+{
+    .data = sSplitIcons_Pal,
+    .tag = TAG_SPLIT_ICONS
+};
+static const union AnimCmd sSpriteAnim_SplitIcon0[] =
+{
+    ANIMCMD_FRAME(0, 0),
+    ANIMCMD_END
+};
+static const union AnimCmd sSpriteAnim_SplitIcon1[] =
+{
+    ANIMCMD_FRAME(4, 0),
+    ANIMCMD_END
+};
+static const union AnimCmd sSpriteAnim_SplitIcon2[] =
+{
+    ANIMCMD_FRAME(8, 0),
+    ANIMCMD_END
+};
+static const union AnimCmd *const sSpriteAnimTable_SplitIcons[] =
+{
+    sSpriteAnim_SplitIcon0,
+    sSpriteAnim_SplitIcon1,
+    sSpriteAnim_SplitIcon2,
+};
+static const struct SpriteTemplate sSpriteTemplate_SplitIcons =
+{
+    .tileTag = TAG_SPLIT_ICONS,
+    .paletteTag = TAG_SPLIT_ICONS,
+    .oam = &sOamData_SplitIcons,
+    .anims = sSpriteAnimTable_SplitIcons,
+    .images = NULL,
+    .affineAnims = gDummySpriteAffineAnimTable,
+    .callback = SpriteCallbackDummy
+};
+
 static const struct OamData sOamData_64x32 =
 {
     .y = 0,
@@ -2575,4 +2628,30 @@ static void SafariTextIntoHealthboxObject(void *dest, u8 *windowTileData, u32 wi
 {
     CpuCopy32(windowTileData, dest, windowWidth * TILE_SIZE_4BPP);
     CpuCopy32(windowTileData + 256, dest + 256, windowWidth * TILE_SIZE_4BPP);
+}
+
+//AdditionalBattleInfo
+void AdditionalBattleInfoLoadGfx(void)
+{
+    LoadSpritePalette(&sSpritePal_SplitIcons);
+    if (GetSpriteTileStartByTag(TAG_SPLIT_ICONS) == TAG_NONE)
+    {
+        gAdditionalBattleInfoSubmenuSplitIconId = MAX_SPRITES;
+        LoadCompressedSpriteSheet(&sSpriteSheet_SplitIcons);
+    }
+}
+u8 AdditionalBattleInfoShowSplitIcon(u32 split)
+{
+    if (gAdditionalBattleInfoSubmenuSplitIconId == MAX_SPRITES)
+        gAdditionalBattleInfoSubmenuSplitIconId = CreateSprite(&sSpriteTemplate_SplitIcons, 94+34, 144-16, 3);
+
+    gSprites[gAdditionalBattleInfoSubmenuSplitIconId].invisible = FALSE;
+    StartSpriteAnim(&gSprites[gAdditionalBattleInfoSubmenuSplitIconId], split);
+    return gAdditionalBattleInfoSubmenuSplitIconId;
+}
+void AdditionalBattleInfoDestroySplitIcon(void)
+{
+    if (gAdditionalBattleInfoSubmenuSplitIconId != MAX_SPRITES)
+        DestroySprite(&gSprites[gAdditionalBattleInfoSubmenuSplitIconId]);
+    gAdditionalBattleInfoSubmenuSplitIconId = MAX_SPRITES;
 }

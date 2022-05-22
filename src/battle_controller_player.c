@@ -28,6 +28,7 @@
 #include "text.h"
 #include "util.h"
 #include "window.h"
+#include "constants/abilities.h"
 #include "constants/battle_anim.h"
 #include "constants/items.h"
 #include "constants/moves.h"
@@ -101,7 +102,9 @@ static void MoveSelectionDestroyCursorAt(u8 cursorPos);
 static void MoveSelectionDisplayPpNumber(void);
 static void MoveSelectionDisplayPpString(void);
 static void MoveSelectionDisplayMoveType(void);
+static void MoveSelectionDisplayMoveTypeEffectiveness(void);
 static void MoveSelectionDisplayMoveNames(void);
+static void MoveSelectionDisplayMoveData(void);
 static void HandleMoveSwitching(void);
 static void SwitchIn_HandleSoundAndEnd(void);
 static void WaitForMonSelection(void);
@@ -478,7 +481,20 @@ static void HandleInputChooseMove(void)
     else
         gPlayerDpadHoldFrames = 0;
 
-    if (JOY_NEW(A_BUTTON))
+    if (gAdditionalBattleInfoSubmenu)
+    {
+        if (JOY_NEW(START_BUTTON) || JOY_NEW(A_BUTTON) || JOY_NEW(B_BUTTON))
+        {
+            gAdditionalBattleInfoSubmenu = FALSE;
+            gSprites[gAdditionalBattleInfoSubmenuSplitIconId].invisible = TRUE;
+            PlaySE(SE_SELECT);
+            MoveSelectionDisplayMoveNames();
+            MoveSelectionCreateCursorAt(gMoveSelectionCursor[gActiveBattler], 0);
+            MoveSelectionDisplayPpNumber();
+            MoveSelectionDisplayMoveType();
+        }
+    }
+    else if (JOY_NEW(A_BUTTON))
     {
         u8 moveTarget;
 
@@ -542,6 +558,7 @@ static void HandleInputChooseMove(void)
     }
     else if (JOY_NEW(B_BUTTON) || gPlayerDpadHoldFrames > 59)
     {
+        AdditionalBattleInfoDestroySplitIcon();
         PlaySE(SE_SELECT);
         BtlController_EmitTwoReturnValues(BUFFER_B, 10, 0xFFFF);
         PlayerBufferExecCompleted();
@@ -611,6 +628,13 @@ static void HandleInputChooseMove(void)
             BattlePutTextOnWindow(gText_BattleSwitchWhich, B_WIN_SWITCH_PROMPT);
             gBattlerControllerFuncs[gActiveBattler] = HandleMoveSwitching;
         }
+    }
+    else if (JOY_NEW(START_BUTTON)) //AdditionalBattleInfo
+    {
+        gAdditionalBattleInfoSubmenu = TRUE;
+        MoveSelectionDestroyCursorAt(gMoveSelectionCursor[gActiveBattler]);
+        MoveSelectionDisplayMoveData();
+        MoveSelectionDisplayMoveTypeEffectiveness();
     }
 }
 
@@ -1470,6 +1494,50 @@ static void MoveSelectionDisplayMoveNames(void)
     }
 }
 
+//AdditionalBattleInfo
+static const u8 sText_Test[]        = _("");
+static const u8 sText_Power[]       = _("POWER: ");
+static const u8 sText_Accuracy[]    = _("ACC: ");
+static const u8 sText_Category[]    = _("CAT: ");
+static void MoveSelectionDisplayMoveData(void)
+{
+    s32 i;
+    struct ChooseMoveStruct *moveInfo = (struct ChooseMoveStruct*)(&gBattleBufferA[gActiveBattler][4]);
+    u16 move = moveInfo->moves[gMoveSelectionCursor[gActiveBattler]];
+    u8 *txtPtr;
+    u8 split;
+
+    //Move name
+    StringCopy(gDisplayedStringBattle, gMoveNames[move]);
+    BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_MOVE_NAME_1);
+
+    //Split
+    #ifdef BATTLE_ENGINE
+    split = GetBattleMoveSplit(move);
+    #else
+    if (gBattleMoves[move].power == 0)
+        split = 2;
+    else if (IS_TYPE_PHYSICAL(gBattleMoves[move].type))
+        split = 0;
+    else
+        split = 1;
+    #endif
+    
+    AdditionalBattleInfoShowSplitIcon(2);
+    StringCopy(gDisplayedStringBattle, sText_Category);
+    BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_MOVE_NAME_2);
+
+    //Power
+    txtPtr = StringCopy(gDisplayedStringBattle, sText_Power);
+    ConvertIntToDecimalStringN(txtPtr, gBattleMoves[move].power, STR_CONV_MODE_RIGHT_ALIGN, 3);
+    BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_MOVE_NAME_3);
+
+    //Accuracy
+    txtPtr = StringCopy(gDisplayedStringBattle, sText_Accuracy);
+    ConvertIntToDecimalStringN(txtPtr, gBattleMoves[move].accuracy, STR_CONV_MODE_RIGHT_ALIGN, 5);
+    BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_MOVE_NAME_4);
+}
+
 static void MoveSelectionDisplayPpString(void)
 {
     StringCopy(gDisplayedStringBattle, gText_MoveInterfacePP);
@@ -1504,6 +1572,111 @@ static void MoveSelectionDisplayMoveType(void)
     *(txtPtr)++ = 1;
 
     StringCopy(txtPtr, gTypeNames[gBattleMoves[moveInfo->moves[gMoveSelectionCursor[gActiveBattler]]].type]);
+    BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_MOVE_TYPE);
+}
+
+//AdditionalBattleInfo
+#define TYPE_x0     0
+#define TYPE_x0_25  5
+#define TYPE_x0_50  10
+#define TYPE_x1     20
+#define TYPE_x2     40
+#define TYPE_x4     80
+static int GetTypeEffectivenessPoints(int move, int targetSpecies)
+{
+    int defType1, defType2, defAbility, moveType;
+    int i = 0;
+    int typePower = TYPE_x1;
+
+    if (move == MOVE_NONE || move == 0xFFFF || gBattleMoves[move].power == 0)
+        return 0;
+
+    defType1 = gBaseStats[targetSpecies].type1;
+    defType2 = gBaseStats[targetSpecies].type2;
+    defAbility = gBaseStats[targetSpecies].abilities[0];
+    moveType = gBattleMoves[move].type;
+
+    if (defAbility == ABILITY_LEVITATE && moveType == TYPE_GROUND)
+    {
+        typePower = 0;
+    }
+    else
+    {
+        while (TYPE_EFFECT_ATK_TYPE(i) != TYPE_ENDTABLE)
+        {
+            if (TYPE_EFFECT_ATK_TYPE(i) == TYPE_FORESIGHT)
+            {
+                i += 3;
+                continue;
+            }
+            if (TYPE_EFFECT_ATK_TYPE(i) == moveType)
+            {
+                // BUG: the value of TYPE_x2 does not exist in gTypeEffectiveness, so if defAbility is ABILITY_WONDER_GUARD, the conditional always fails
+                #ifndef BUGFIX
+                if (TYPE_EFFECT_DEF_TYPE(i) == defType1)
+                    if ((defAbility == ABILITY_WONDER_GUARD && TYPE_EFFECT_MULTIPLIER(i) == TYPE_x2) || defAbility != ABILITY_WONDER_GUARD)
+                        typePower = (typePower * TYPE_EFFECT_MULTIPLIER(i)) / 10;
+                if (TYPE_EFFECT_DEF_TYPE(i) == defType2 && defType1 != defType2)
+                    if ((defAbility == ABILITY_WONDER_GUARD && TYPE_EFFECT_MULTIPLIER(i) == TYPE_x2) || defAbility != ABILITY_WONDER_GUARD)
+                        typePower = (typePower * TYPE_EFFECT_MULTIPLIER(i)) / 10;
+                #else
+                if (TYPE_EFFECT_DEF_TYPE(i) == defType1)
+                    if ((defAbility == ABILITY_WONDER_GUARD && TYPE_EFFECT_MULTIPLIER(i) == TYPE_MUL_SUPER_EFFECTIVE) || defAbility != ABILITY_WONDER_GUARD)
+                        typePower = (typePower * TYPE_EFFECT_MULTIPLIER(i)) / 10;
+                if (TYPE_EFFECT_DEF_TYPE(i) == defType2 && defType1 != defType2)
+                    if ((defAbility == ABILITY_WONDER_GUARD && TYPE_EFFECT_MULTIPLIER(i) == TYPE_MUL_SUPER_EFFECTIVE) || defAbility != ABILITY_WONDER_GUARD)
+                        typePower = (typePower * TYPE_EFFECT_MULTIPLIER(i)) / 10;
+                #endif
+            }
+            i += 3;
+        }
+    }
+    
+    return typePower;
+}
+
+static const u8 sText_TypeEffectiveness_x0[]    = _("x0");
+static const u8 sText_TypeEffectiveness_x0_25[] = _("x0.25");
+static const u8 sText_TypeEffectiveness_x0_50[] = _("x0.50");
+static const u8 sText_TypeEffectiveness_x1[]    = _("x1");
+static const u8 sText_TypeEffectiveness_x2[]    = _("x2");
+static const u8 sText_TypeEffectiveness_x4[]    = _("x4");
+
+static void MoveSelectionDisplayMoveTypeEffectiveness(void)
+{
+    u8 *txtPtr;
+    struct ChooseMoveStruct *moveInfo = (struct ChooseMoveStruct*)(&gBattleBufferA[gActiveBattler][4]);
+    u16 move = moveInfo->moves[gMoveSelectionCursor[gActiveBattler]];
+    u16 targetSpecies = GetMonData(&gEnemyParty[gBattlerPartyIndexes[gActiveBattler]], MON_DATA_SPECIES);
+    u8 typePower = GetTypeEffectivenessPoints(move, targetSpecies);
+
+    txtPtr = StringCopy(gDisplayedStringBattle, gText_MoveInterfaceType);
+    *(txtPtr)++ = EXT_CTRL_CODE_BEGIN;
+    *(txtPtr)++ = EXT_CTRL_CODE_FONT;
+    *(txtPtr)++ = 1;
+
+    switch (typePower)
+    {
+    case TYPE_x0:
+        StringCopy(txtPtr, sText_TypeEffectiveness_x0);
+        break;
+    case TYPE_x0_25:
+        StringCopy(txtPtr, sText_TypeEffectiveness_x0_25);
+        break;
+    case TYPE_x0_50:
+        StringCopy(txtPtr, sText_TypeEffectiveness_x0_50);
+        break;
+    case TYPE_x1:
+        StringCopy(txtPtr, sText_TypeEffectiveness_x1);
+        break;
+    case TYPE_x2:
+        StringCopy(txtPtr, sText_TypeEffectiveness_x2);
+        break;
+    case TYPE_x4:
+        StringCopy(txtPtr, sText_TypeEffectiveness_x4);
+        break;
+    }
+
     BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_MOVE_TYPE);
 }
 
@@ -2583,6 +2756,7 @@ static void PlayerHandleChooseAction(void)
     for (i = 0; i < 4; i++)
         ActionSelectionDestroyCursorAt(i);
 
+    AdditionalBattleInfoLoadGfx();
     ActionSelectionCreateCursorAt(gActionSelectionCursor[gActiveBattler], 0);
     BattleStringExpandPlaceholdersToDisplayedString(gText_WhatWillPkmnDo);
     BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_ACTION_PROMPT);
