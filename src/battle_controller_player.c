@@ -1599,7 +1599,7 @@ static int GetTypeEffectivenessPoints(int move, int targetSpecies)
     int i = 0;
     int typePower = TYPE_x1;
 
-    if (move == MOVE_NONE || move == 0xFFFF || gBattleMoves[move].power == 0)
+    if (move == MOVE_NONE || move == 0xFFFF)
         return 0;
 
     defType1 = gBaseStats[targetSpecies].type1;
@@ -1610,6 +1610,27 @@ static int GetTypeEffectivenessPoints(int move, int targetSpecies)
     if (defAbility == ABILITY_LEVITATE && moveType == TYPE_GROUND)
     {
         typePower = 0;
+    }
+    else if (gBattleMoves[move].power == 0)
+    {
+        while (TYPE_EFFECT_ATK_TYPE(i) != TYPE_ENDTABLE)
+        {
+            if (TYPE_EFFECT_ATK_TYPE(i) == TYPE_FORESIGHT)
+            {
+                i += 3;
+                continue;
+            }
+            if (TYPE_EFFECT_ATK_TYPE(i) == moveType)
+            {
+                if (TYPE_EFFECT_DEF_TYPE(i) == defType1)
+                    typePower = (typePower * TYPE_EFFECT_MULTIPLIER(i)) / 10;
+                if (TYPE_EFFECT_DEF_TYPE(i) == defType2 && defType1 != defType2)
+                    typePower = (typePower * TYPE_EFFECT_MULTIPLIER(i)) / 10;
+            }
+            i += 3;
+        }
+        if (typePower > 0)
+            typePower = TYPE_x1;
     }
     else
     {
@@ -1646,7 +1667,10 @@ static int GetTypeEffectivenessPoints(int move, int targetSpecies)
     return typePower;
 }
 
-static const u8 sText_TypeEffectiveness[]       = _("EFFECT");
+static const u8 sText_TypeEffectiveness[]       = _("EFFECT/{STR_VAR_1}");
+static const u8 sText_TypeEffectivenessDoubleA[]= _("EFFECT/{STR_VAR_2}/{STR_VAR_1}");
+static const u8 sText_TypeEffectivenessDoubleB[]= _("EFFECT/{STR_VAR_1}/{STR_VAR_2}");
+static const u8 sText_TypeEffectivenessStatus[] = _("EFFECT/STATUS");
 static const u8 sText_TypeEffectiveness_x0[]    = _("x0");
 static const u8 sText_TypeEffectiveness_x0_25[] = _("x0.25");
 static const u8 sText_TypeEffectiveness_x0_50[] = _("x0.50");
@@ -1656,7 +1680,6 @@ static const u8 sText_TypeEffectiveness_x4[]    = _("x4");
 
 static void MoveSelectionDisplayMoveTypeEffectiveness(void)
 {
-    u8 *txtPtr;
     struct ChooseMoveStruct *moveInfo = (struct ChooseMoveStruct*)(&gBattleBufferA[gActiveBattler][4]);
     u16 move = moveInfo->moves[gMoveSelectionCursor[gActiveBattler]];
     u16 targetSpecies = GetMonData(&gEnemyParty[gBattlerPartyIndexes[gActiveBattler]], MON_DATA_SPECIES);
@@ -1664,30 +1687,25 @@ static void MoveSelectionDisplayMoveTypeEffectiveness(void)
     u8 typePower = GetTypeEffectivenessPoints(move, targetSpecies);
     u8 typePowerDoubleBattle = 0;
 
-    txtPtr = StringCopy(gDisplayedStringBattle, sText_TypeEffectiveness);
-    *(txtPtr)++ = EXT_CTRL_CODE_BEGIN;
-    *(txtPtr)++ = EXT_CTRL_CODE_FONT;
-    *(txtPtr)++ = 1;
-
     switch (typePower)
     {
     case TYPE_x0:
-        StringCopy(txtPtr, sText_TypeEffectiveness_x0);
+        StringCopy(gStringVar1, sText_TypeEffectiveness_x0);
         break;
     case TYPE_x0_25:
-        StringCopy(txtPtr, sText_TypeEffectiveness_x0_25);
+        StringCopy(gStringVar1, sText_TypeEffectiveness_x0_25);
         break;
     case TYPE_x0_50:
-        StringCopy(txtPtr, sText_TypeEffectiveness_x0_50);
+        StringCopy(gStringVar1, sText_TypeEffectiveness_x0_50);
         break;
     case TYPE_x1:
-        StringCopy(txtPtr, sText_TypeEffectiveness_x1);
+        StringCopy(gStringVar1, sText_TypeEffectiveness_x1);
         break;
     case TYPE_x2:
-        StringCopy(txtPtr, sText_TypeEffectiveness_x2);
+        StringCopy(gStringVar1, sText_TypeEffectiveness_x2);
         break;
     case TYPE_x4:
-        StringCopy(txtPtr, sText_TypeEffectiveness_x4);
+        StringCopy(gStringVar1, sText_TypeEffectiveness_x4);
         break;
     }
 
@@ -1697,35 +1715,35 @@ static void MoveSelectionDisplayMoveTypeEffectiveness(void)
         targetSpeciesDoubleBattle = GetMonData(&gEnemyParty[gBattlerPartyIndexes[BATTLE_PARTNER(gActiveBattler)]], MON_DATA_SPECIES);
         typePowerDoubleBattle = GetTypeEffectivenessPoints(move, targetSpeciesDoubleBattle);
 
-        *(txtPtr)++ = EXT_CTRL_CODE_BEGIN;
-        *(txtPtr)++ = EXT_CTRL_CODE_FONT;
-        *(txtPtr)++ = 1;
-
         switch (typePowerDoubleBattle)
         {
         case TYPE_x0:
-            StringCopy(txtPtr, sText_TypeEffectiveness_x0);
+            StringCopy(gStringVar2, sText_TypeEffectiveness_x0);
             break;
         case TYPE_x0_25:
-            StringCopy(txtPtr, sText_TypeEffectiveness_x0_25);
+            StringCopy(gStringVar2, sText_TypeEffectiveness_x0_25);
             break;
         case TYPE_x0_50:
-            StringCopy(txtPtr, sText_TypeEffectiveness_x0_50);
+            StringCopy(gStringVar2, sText_TypeEffectiveness_x0_50);
             break;
         case TYPE_x1:
-            StringCopy(txtPtr, sText_TypeEffectiveness_x1);
+            StringCopy(gStringVar2, sText_TypeEffectiveness_x1);
             break;
         case TYPE_x2:
-            StringCopy(txtPtr, sText_TypeEffectiveness_x2);
+            StringCopy(gStringVar2, sText_TypeEffectiveness_x2);
             break;
         case TYPE_x4:
-            StringCopy(txtPtr, sText_TypeEffectiveness_x4);
+            StringCopy(gStringVar2, sText_TypeEffectiveness_x4);
             break;
         }
 
+        if (GetBattlerSide(gActiveBattler) == B_SIDE_PLAYER)
+            StringExpandPlaceholders(gDisplayedStringBattle, sText_TypeEffectivenessDoubleB);
+        else
+            StringExpandPlaceholders(gDisplayedStringBattle, sText_TypeEffectivenessDoubleA);
     }
-
-
+    else
+        StringExpandPlaceholders(gDisplayedStringBattle, sText_TypeEffectiveness);
 
     BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_MOVE_TYPE);
 }
