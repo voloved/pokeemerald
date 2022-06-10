@@ -230,7 +230,7 @@ void DrawStdWindowFrame(u8 windowId, bool8 copyToVram)
         CopyWindowToVram(windowId, COPYWIN_FULL);
 }
 
-void DrawStdWindowFrameAdditionalBattleInfo(u8 windowId)
+void DrawStdWindowFrameBattleInfoSystem(u8 windowId)
 {
     CallWindowFunction(windowId, WindowFunc_DrawStandardFrame);
 }

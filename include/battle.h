@@ -708,9 +708,9 @@ extern struct BattleHealthboxInfo *gBattleControllerOpponentFlankHealthboxData;
 extern u16 gBattleMovePower;
 extern u16 gMoveToLearn;
 extern u8 gBattleMonForms[MAX_BATTLERS_COUNT];
-extern u8 gAdditionalBattleInfoSubmenu;
-extern u8 gAdditionalBattleInfoSubmenuSplitIconId;
-extern u8 gAdditionalBattleInfoSubmenuButtonPromptIds[2];
+extern u8 gBattleInfoSystemSubmenu;
+extern u8 gBattleInfoSystemSubmenuSplitIconId;
+extern u8 gBattleInfoSystemSubmenuButtonPromptIds[2];
 
 extern void (*gPreBattleCallback1)(void);
 extern void (*gBattleMainFunc)(void);

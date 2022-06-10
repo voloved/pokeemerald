@@ -484,17 +484,17 @@ static void HandleInputChooseMove(void)
     else
         gPlayerDpadHoldFrames = 0;
 
-    if (gAdditionalBattleInfoSubmenu)
+    if (gBattleInfoSystemSubmenu)
     {
         if (JOY_NEW(START_BUTTON) || JOY_NEW(A_BUTTON) || JOY_NEW(B_BUTTON))
         {
-            gAdditionalBattleInfoSubmenu = FALSE;
-            gSprites[gAdditionalBattleInfoSubmenuSplitIconId].invisible = TRUE;
+            gBattleInfoSystemSubmenu = FALSE;
+            gSprites[gBattleInfoSystemSubmenuSplitIconId].invisible = TRUE;
             FillWindowPixelBuffer(B_WIN_MOVE_DESCRIPTION, PIXEL_FILL(0));
             ClearStdWindowAndFrame(B_WIN_MOVE_DESCRIPTION, FALSE);
             CopyWindowToVram(B_WIN_MOVE_DESCRIPTION, COPYWIN_GFX);
             PlaySE(SE_SELECT);
-            TryRestoreABI_ButtonPrompt();
+            TryRestoreBattleInfoSystem_ButtonPrompt();
             MoveSelectionDisplayMoveNames();
             MoveSelectionCreateCursorAt(gMoveSelectionCursor[gActiveBattler], 0);
             MoveSelectionDisplayPpNumber();
@@ -562,12 +562,12 @@ static void HandleInputChooseMove(void)
 
             gSprites[gBattlerSpriteIds[gMultiUsePlayerCursor]].callback = SpriteCb_ShowAsMoveTarget;
         }
-        TryHideABI_ButtonPrompt();
+        TryHideBattleInfoSystem_ButtonPrompt();
     }
     else if (JOY_NEW(B_BUTTON) || gPlayerDpadHoldFrames > 59)
     {
-        AdditionalBattleInfoDestroySplitIcon();
-        TryHideABI_ButtonPrompt();
+        BattleInfoSystemDestroySplitIcon();
+        TryHideBattleInfoSystem_ButtonPrompt();
         PlaySE(SE_SELECT);
         BtlController_EmitTwoReturnValues(BUFFER_B, 10, 0xFFFF);
         PlayerBufferExecCompleted();
@@ -638,10 +638,10 @@ static void HandleInputChooseMove(void)
             gBattlerControllerFuncs[gActiveBattler] = HandleMoveSwitching;
         }
     }
-    else if (JOY_NEW(START_BUTTON)) //AdditionalBattleInfo
+    else if (JOY_NEW(START_BUTTON)) //BattleInfoSystem
     {
-        gAdditionalBattleInfoSubmenu = TRUE;
-        TryHideABI_ButtonPrompt();
+        gBattleInfoSystemSubmenu = TRUE;
+        TryHideBattleInfoSystem_ButtonPrompt();
         MoveSelectionDestroyCursorAt(gMoveSelectionCursor[gActiveBattler]);
         MoveSelectionDisplayMoveData();
         MoveSelectionDisplayMoveTypeEffectiveness();
@@ -1505,7 +1505,7 @@ static void MoveSelectionDisplayMoveNames(void)
     }
 }
 
-//AdditionalBattleInfo
+//BattleInfoSystem
 static const u8 sText_Test[]        = _("");
 static const u8 sText_Power[]       = _("POWER: ");
 static const u8 sText_Accuracy[]    = _("ACC: ");
@@ -1534,7 +1534,7 @@ static void MoveSelectionDisplayMoveData(void)
         split = 1;
     #endif
     
-    AdditionalBattleInfoShowSplitIcon(2);
+    BattleInfoSystemShowSplitIcon(split);
     StringCopy(gDisplayedStringBattle, sText_Category);
     BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_MOVE_NAME_2);
 
@@ -1586,7 +1586,7 @@ static void MoveSelectionDisplayMoveType(void)
     BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_MOVE_TYPE);
 }
 
-//AdditionalBattleInfo
+//BattleInfoSystem
 #define TYPE_x0     0
 #define TYPE_x0_25  5
 #define TYPE_x0_50  10
@@ -1698,7 +1698,7 @@ static void MoveSelectionDisplayMoveDescription(void)
     u16 move = moveInfo->moves[gMoveSelectionCursor[gActiveBattler]];
 
     LoadMessageBoxAndBorderGfx();
-    DrawStdWindowFrameAdditionalBattleInfo(B_WIN_MOVE_DESCRIPTION);
+    DrawStdWindowFrameBattleInfoSystem(B_WIN_MOVE_DESCRIPTION);
 
     StringCopy(gDisplayedStringBattle, gMoveDescriptionPointers[move -1]);
 
@@ -2782,7 +2782,7 @@ static void PlayerHandleChooseAction(void)
     for (i = 0; i < 4; i++)
         ActionSelectionDestroyCursorAt(i);
 
-    AdditionalBattleInfoLoadGfx();
+    BattleInfoSystemLoadGfx();
     ActionSelectionCreateCursorAt(gActionSelectionCursor[gActiveBattler], 0);
     BattleStringExpandPlaceholdersToDisplayedString(gText_WhatWillPkmnDo);
     BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_ACTION_PROMPT);
@@ -2811,7 +2811,7 @@ static void HandleChooseMoveAfterDma3(void)
         gBattle_BG0_X = 0;
         gBattle_BG0_Y = DISPLAY_HEIGHT * 2;
         gBattlerControllerFuncs[gActiveBattler] = HandleInputChooseMove;
-        TryRestoreABI_ButtonPrompt();
+        TryRestoreBattleInfoSystem_ButtonPrompt();
     }
 }
 
