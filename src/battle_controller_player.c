@@ -1646,6 +1646,7 @@ static int GetTypeEffectivenessPoints(int move, int targetSpecies)
     return typePower;
 }
 
+static const u8 sText_TypeEffectiveness[]       = _("EFFECT");
 static const u8 sText_TypeEffectiveness_x0[]    = _("x0");
 static const u8 sText_TypeEffectiveness_x0_25[] = _("x0.25");
 static const u8 sText_TypeEffectiveness_x0_50[] = _("x0.50");
@@ -1659,9 +1660,11 @@ static void MoveSelectionDisplayMoveTypeEffectiveness(void)
     struct ChooseMoveStruct *moveInfo = (struct ChooseMoveStruct*)(&gBattleBufferA[gActiveBattler][4]);
     u16 move = moveInfo->moves[gMoveSelectionCursor[gActiveBattler]];
     u16 targetSpecies = GetMonData(&gEnemyParty[gBattlerPartyIndexes[gActiveBattler]], MON_DATA_SPECIES);
+    u16 targetSpeciesDoubleBattle = 0;
     u8 typePower = GetTypeEffectivenessPoints(move, targetSpecies);
+    u8 typePowerDoubleBattle = 0;
 
-    txtPtr = StringCopy(gDisplayedStringBattle, gText_MoveInterfaceType);
+    txtPtr = StringCopy(gDisplayedStringBattle, sText_TypeEffectiveness);
     *(txtPtr)++ = EXT_CTRL_CODE_BEGIN;
     *(txtPtr)++ = EXT_CTRL_CODE_FONT;
     *(txtPtr)++ = 1;
@@ -1687,6 +1690,42 @@ static void MoveSelectionDisplayMoveTypeEffectiveness(void)
         StringCopy(txtPtr, sText_TypeEffectiveness_x4);
         break;
     }
+
+
+    if (IsDoubleBattle())
+    {
+        targetSpeciesDoubleBattle = GetMonData(&gEnemyParty[gBattlerPartyIndexes[BATTLE_PARTNER(gActiveBattler)]], MON_DATA_SPECIES);
+        typePowerDoubleBattle = GetTypeEffectivenessPoints(move, targetSpeciesDoubleBattle);
+
+        *(txtPtr)++ = EXT_CTRL_CODE_BEGIN;
+        *(txtPtr)++ = EXT_CTRL_CODE_FONT;
+        *(txtPtr)++ = 1;
+
+        switch (typePowerDoubleBattle)
+        {
+        case TYPE_x0:
+            StringCopy(txtPtr, sText_TypeEffectiveness_x0);
+            break;
+        case TYPE_x0_25:
+            StringCopy(txtPtr, sText_TypeEffectiveness_x0_25);
+            break;
+        case TYPE_x0_50:
+            StringCopy(txtPtr, sText_TypeEffectiveness_x0_50);
+            break;
+        case TYPE_x1:
+            StringCopy(txtPtr, sText_TypeEffectiveness_x1);
+            break;
+        case TYPE_x2:
+            StringCopy(txtPtr, sText_TypeEffectiveness_x2);
+            break;
+        case TYPE_x4:
+            StringCopy(txtPtr, sText_TypeEffectiveness_x4);
+            break;
+        }
+
+    }
+
+
 
     BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_MOVE_TYPE);
 }
