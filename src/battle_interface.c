@@ -3307,9 +3307,8 @@ void TryAddLastUsedBallItemSprites(void)
         // we're out of the last used ball, so just set it to the first ball in the bag
         // we have to compact the bag first bc it is typically only compacted when you open it
         CompactItemsInBagPocket(&gBagPockets[BALLS_POCKET]);
-        gLastThrownBall = gBagPockets[BALLS_POCKET].itemSlots[0].itemId;
+        gBallToDisplay = gBagPockets[BALLS_POCKET].itemSlots[0].itemId;
     }
-    gBallToDisplay = gLastThrownBall;
 
     if (!CanThrowLastUsedBall())
         return;
