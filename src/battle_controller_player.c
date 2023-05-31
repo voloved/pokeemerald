@@ -299,7 +299,7 @@ static void HandleInputChooseAction(void)
     else if (sAckBallUseBtn && JOY_NEW(B_LAST_USED_BTN_CANCEL_CYC)){
         sAckBallUseBtn = FALSE;
         ArrowsChangeColorLastBallCycle(FALSE);
-        PlaySE(SE_PC_OFF);
+        PlaySE(SE_SELECT);
     }
     if(sAckBallUseBtn){
         if (JOY_HELD(B_LAST_USED_BALL_BUTTON) && (JOY_NEW(DPAD_DOWN) || JOY_NEW(DPAD_RIGHT)))
