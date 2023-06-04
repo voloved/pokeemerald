@@ -3517,6 +3517,7 @@ void SwapBallToDisplay(bool32 sameBall){
 
 void ArrowsChangeColorLastBallCycle(bool32 showArrows)
 {
+#if B_LAST_USED_BALL == TRUE && B_LAST_USED_BALL_CYCLE == TRUE
     u16 paletteNum = 16 + gSprites[gBattleStruct->ballSpriteIds[1]].oam.paletteNum;
     struct PlttData *defaultPlttArrow;
     struct PlttData *defaultPlttOutline;
@@ -3546,4 +3547,5 @@ void ArrowsChangeColorLastBallCycle(bool32 showArrows)
         pltOutline->g = defaultPlttOutline->g;
         pltOutline->b = defaultPlttOutline->b;
     }
+#endif
 }
