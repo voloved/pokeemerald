@@ -35,11 +35,11 @@
 #define ABILITYEFFECT_FIELD_SPORT                13 // Only used if B_SPORT_TURNS < GEN_6
 #define ABILITYEFFECT_ON_WEATHER                 14
 #define ABILITYEFFECT_ON_TERRAIN                 15
+#define ABILITYEFFECT_SWITCH_IN_TERRAIN          16
+#define ABILITYEFFECT_SWITCH_IN_WEATHER          17
 // Special cases
 #define ABILITYEFFECT_MUD_SPORT                  252 // Only used if B_SPORT_TURNS < GEN_6
 #define ABILITYEFFECT_WATER_SPORT                253 // Only used if B_SPORT_TURNS < GEN_6
-#define ABILITYEFFECT_SWITCH_IN_TERRAIN          254
-#define ABILITYEFFECT_SWITCH_IN_WEATHER          255
 
 // For the first argument of ItemBattleEffects, to deteremine which block of item effects to try
 #define ITEMEFFECT_ON_SWITCH_IN                 0
@@ -185,7 +185,6 @@ void ClearIllusionMon(u32 battlerId);
 bool32 SetIllusionMon(struct Pokemon *mon, u32 battlerId);
 bool8 ShouldGetStatBadgeBoost(u16 flagId, u8 battlerId);
 u8 GetBattleMoveSplit(u32 moveId);
-bool32 TestMoveFlags(u16 move, u32 flag);
 bool32 CanFling(u8 battlerId);
 bool32 IsTelekinesisBannedSpecies(u16 species);
 bool32 IsHealBlockPreventingMove(u32 battler, u32 move);
@@ -212,6 +211,9 @@ bool8 IsMoveAffectedByParentalBond(u16 move, u8 battlerId);
 void CopyMonLevelAndBaseStatsToBattleMon(u32 battler, struct Pokemon *mon);
 void CopyMonAbilityAndTypesToBattleMon(u32 battler, struct Pokemon *mon);
 void RecalcBattlerStats(u32 battler, struct Pokemon *mon);
+void MulModifier(u16 *modifier, u16 val);
+bool32 IsAlly(u32 battlerAtk, u32 battlerDef);
+
 // Ability checks
 bool32 IsRolePlayBannedAbilityAtk(u16 ability);
 bool32 IsRolePlayBannedAbility(u16 ability);
@@ -236,5 +238,6 @@ bool8 ChangeTypeBasedOnTerrain(u8 battlerId);
 void RemoveConfusionStatus(u8 battlerId);
 u8 GetBattlerGender(u8 battlerId);
 bool8 AreBattlersOfOppositeGender(u8 battler1, u8 battler2);
+u32 CalcSecondaryEffectChance(u8 battlerId, u8 secondaryEffectChance);
 
 #endif // GUARD_BATTLE_UTIL_H

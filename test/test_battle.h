@@ -87,7 +87,7 @@
  *   SINGLE_BATTLE_TEST("Stun Spore does not affect Grass-types")
  *   {
  *       GIVEN {
- *           ASSUME(gBattleMoves[MOVE_STUN_SPORE].flags & FLAG_POWDER);
+ *           ASSUME(gBattleMoves[MOVE_STUN_SPORE].powderMove);
  *           ASSUME(gSpeciesInfo[SPECIES_ODDISH].types[0] == TYPE_GRASS);
  *           PLAYER(SPECIES_ODDISH); // 1.
  *           OPPONENT(SPECIES_ODDISH); // 2.
@@ -574,6 +574,7 @@ struct BattleTestData
     struct Pokemon *currentMon;
     u8 gender;
     u8 nature;
+    u16 forcedAbilities[NUM_BATTLE_SIDES][PARTY_SIZE];
 
     u8 currentMonIndexes[MAX_BATTLERS_COUNT];
     u8 turnState;
@@ -650,12 +651,9 @@ extern struct BattleTestRunnerState *gBattleTestRunnerState;
 /* Test */
 
 #define TO_DO_BATTLE_TEST(_name) \
-    SINGLE_BATTLE_TEST("TODO: " _name) \
+    TEST("TODO: " _name) \
     { \
         TO_DO; \
-        GIVEN { PLAYER(SPECIES_WOBBUFFET); OPPONENT(SPECIES_WOBBUFFET); } \
-        WHEN { TURN { } } \
-        THEN { EXPECT_TO_DO; } \
     }
 
 #define SINGLE_BATTLE_TEST(_name, ...) \
