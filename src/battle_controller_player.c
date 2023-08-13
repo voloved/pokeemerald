@@ -331,7 +331,6 @@ static void HandleInputChooseAction(void)
             sAckBallUseBtn = FALSE;
             sBallSwapped = FALSE;
             ArrowsChangeColorLastBallCycle(FALSE);
-            PlaySE(SE_SELECT);
         }
         else if (!JOY_HELD(B_LAST_USED_BALL_BUTTON) && CanThrowLastUsedBall())
         {
