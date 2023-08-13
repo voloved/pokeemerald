@@ -3454,7 +3454,8 @@ static void SpriteCB_LastUsedBallBounce(struct Sprite *sprite)
     }
 }
 
-static void Task_BounceBall(u8 taskId){
+static void Task_BounceBall(u8 taskId)
+{
     struct Sprite *sprite = &gSprites[gBattleStruct->ballSpriteIds[0]];
     struct Task *task = &gTasks[taskId];
     switch(task->sState)
@@ -3469,19 +3470,22 @@ static void Task_BounceBall(u8 taskId){
             task->sState = 1;
         break;
     case 1:  // Destroy Icon
-        if (!sprite->sMoving){
+        if (!sprite->sMoving)
+        {
             DestroyLastUsedBallGfx(sprite);
             task->sState++;
         }  // Passthrough
     case 2: //Create New Icon
-        if (!sprite->inUse){
+        if (!sprite->inUse)
+        {
             gBattleStruct->ballSpriteIds[0] = AddItemIconSprite(102, 102, gBallToDisplay);
             gSprites[gBattleStruct->ballSpriteIds[0]].x = LAST_USED_BALL_X_F;
             gSprites[gBattleStruct->ballSpriteIds[0]].y = LAST_USED_BALL_Y_BNC;
             task->sState++;
-        }  // Passthrough
+        }  // Fallthrough
     case 3: // Bounce Down
-        if (!sprite->sMoving){
+        if (!sprite->sMoving)
+        {
             sprite->sBounce = FALSE;
             sprite->sMoving = TRUE;
             sprite->callback = SpriteCB_LastUsedBallBounce; //Show and bounce down
@@ -3489,19 +3493,22 @@ static void Task_BounceBall(u8 taskId){
         }
         break;     
     case 4:  // Destroy Task
-        if(!sprite->sMoving){
+        if(!sprite->sMoving)
+        {
             sprite->callback = SpriteCB_LastUsedBall;
             DestroyTask(taskId);
         }        
     }
-    if (!gLastUsedBallMenuPresent){
+    if (!gLastUsedBallMenuPresent)
+    {
         // Used to check if the R button was released before the animation was complete
         sprite->callback = SpriteCB_LastUsedBall;
         DestroyTask(taskId);
     }
 }
 
-void SwapBallToDisplay(bool32 sameBall){
+void SwapBallToDisplay(bool32 sameBall)
+{
     u8 taskId;
     taskId = CreateTask(Task_BounceBall, 10);
     gTasks[taskId].sSameBall = sameBall;
@@ -3520,7 +3527,8 @@ void ArrowsChangeColorLastBallCycle(bool32 showArrows)
     paletteNum *= 16;
     pltArrow = (struct PlttData *)&gPlttBufferFaded[paletteNum + 9];  // Arrow color is in idx 9
     pltOutline = (struct PlttData *)&gPlttBufferFaded[paletteNum + 8];  // Arrow outline is in idx 8
-    if(!showArrows){  //Make invisible
+    if (!showArrows) //Make invisible
+    {
         defaultPlttArrow = (struct PlttData *)&gPlttBufferFaded[paletteNum + 13];  // Background color is idx 13
         pltArrow->r = defaultPlttArrow->r;
         pltArrow->g = defaultPlttArrow->g;
@@ -3529,7 +3537,8 @@ void ArrowsChangeColorLastBallCycle(bool32 showArrows)
         pltOutline->g = defaultPlttArrow->g;
         pltOutline->b = defaultPlttArrow->b;
     }
-    else{  // Make gray
+    else // Make gray
+    {
         defaultPlttArrow = (struct PlttData *)&gPlttBufferFaded[paletteNum + 11];  // Grey color is idx 11
         defaultPlttOutline = (struct PlttData *)&gPlttBufferFaded[paletteNum + 10];  //Light grey color for outline is idx 10
         pltArrow->r = defaultPlttArrow->r;

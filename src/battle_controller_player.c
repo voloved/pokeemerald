@@ -244,7 +244,8 @@ static u16 GetPrevBall(u16 ballId)
         {
             if (i <= 0)
             {
-                for (j = gBagPockets[BALLS_POCKET].capacity - 1; j >= 0; j--){
+                for (j = gBagPockets[BALLS_POCKET].capacity - 1; j >= 0; j--)
+                {
                     ballPrev = gBagPockets[BALLS_POCKET].itemSlots[j].itemId;
                     if (ballPrev != ITEM_NONE)
                         return ballPrev;
@@ -288,19 +289,23 @@ static void HandleInputChooseAction(void)
         gPlayerDpadHoldFrames = 0;
 
 #if B_LAST_USED_BALL == TRUE && B_LAST_USED_BALL_CYCLE == TRUE
-    if (!gLastUsedBallMenuPresent){
+    if (!gLastUsedBallMenuPresent)
+    {
         sAckBallUseBtn = FALSE;
     }
-    else if(JOY_NEW(B_LAST_USED_BALL_BUTTON)){
+    else if (JOY_NEW(B_LAST_USED_BALL_BUTTON))
+    {
         sAckBallUseBtn = TRUE;
         ArrowsChangeColorLastBallCycle(TRUE);
     }
-    else if (sAckBallUseBtn && JOY_NEW(B_LAST_USED_BTN_CANCEL_CYC)){
+    else if (sAckBallUseBtn && JOY_NEW(B_LAST_USED_BTN_CANCEL_CYC))
+    {
         sAckBallUseBtn = FALSE;
         ArrowsChangeColorLastBallCycle(FALSE);
         PlaySE(SE_SELECT);
     }
-    if(sAckBallUseBtn){
+    if (sAckBallUseBtn)
+    {
         if (JOY_HELD(B_LAST_USED_BALL_BUTTON) && (JOY_NEW(DPAD_DOWN) || JOY_NEW(DPAD_RIGHT)))
         {
             bool8 sameBall = FALSE;
