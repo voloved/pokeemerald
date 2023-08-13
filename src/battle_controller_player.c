@@ -185,6 +185,7 @@ static void (*const sPlayerBufferCommands[CONTROLLER_CMDS_COUNT])(void) =
 };
 
 static EWRAM_DATA bool8 sAckBallUseBtn = FALSE;
+static EWRAM_DATA bool8 sBallSwapped = FALSE;
 
 // unknown unused data
 static const u8 sUnused[] = {0x48, 0x48, 0x20, 0x5a, 0x50, 0x50, 0x50, 0x58};
@@ -296,13 +297,8 @@ static void HandleInputChooseAction(void)
     else if (JOY_NEW(B_LAST_USED_BALL_BUTTON))
     {
         sAckBallUseBtn = TRUE;
+        sBallSwapped = FALSE;
         ArrowsChangeColorLastBallCycle(TRUE);
-    }
-    else if (sAckBallUseBtn && JOY_NEW(B_LAST_USED_BTN_CANCEL_CYC))
-    {
-        sAckBallUseBtn = FALSE;
-        ArrowsChangeColorLastBallCycle(FALSE);
-        PlaySE(SE_SELECT);
     }
     if (sAckBallUseBtn)
     {
@@ -310,6 +306,7 @@ static void HandleInputChooseAction(void)
         {
             bool8 sameBall = FALSE;
             u16 nextBall = GetNextBall(gBallToDisplay);
+            sBallSwapped = TRUE;
             if (gBallToDisplay == nextBall)
                 sameBall = TRUE;
             else
@@ -321,11 +318,19 @@ static void HandleInputChooseAction(void)
         {
             bool8 sameBall = FALSE;
             u16 prevBall = GetPrevBall(gBallToDisplay);
+            sBallSwapped = TRUE;
             if (gBallToDisplay == prevBall)
                 sameBall = TRUE;
             else
                 gBallToDisplay = prevBall;
             SwapBallToDisplay(sameBall);
+            PlaySE(SE_SELECT);
+        }
+        else if (!JOY_HELD(B_LAST_USED_BALL_BUTTON) && sBallSwapped)
+        {
+            sAckBallUseBtn = FALSE;
+            sBallSwapped = FALSE;
+            ArrowsChangeColorLastBallCycle(FALSE);
             PlaySE(SE_SELECT);
         }
         else if (!JOY_HELD(B_LAST_USED_BALL_BUTTON) && CanThrowLastUsedBall())
