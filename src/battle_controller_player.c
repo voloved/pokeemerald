@@ -388,6 +388,7 @@ static void HandleInputChooseAction(u32 battler)
             BtlController_EmitTwoReturnValues(battler, BUFFER_B, B_ACTION_CANCEL_PARTNER, 0);
             PlayerBufferExecCompleted(battler);
         }
+    #if B_QUICK_MOVE_CURSOR_TO_RUN
         else
         {
             if(!(gBattleTypeFlags & BATTLE_TYPE_TRAINER)) //if wild, pressing B moves cursor to run
@@ -398,6 +399,7 @@ static void HandleInputChooseAction(u32 battler)
                 ActionSelectionCreateCursorAt(gActionSelectionCursor[battler], 0);
             }
         }
+    #endif
     }
     else if (JOY_NEW(START_BUTTON))
     {

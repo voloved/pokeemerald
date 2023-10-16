@@ -184,6 +184,7 @@ static void HandleInputChooseAction(u32 battler)
             ActionSelectionCreateCursorAt(gActionSelectionCursor[battler], 0);
         }
     }
+#if B_QUICK_MOVE_CURSOR_TO_RUN
     else if (JOY_NEW(B_BUTTON))
     {
         PlaySE(SE_SELECT);
@@ -191,6 +192,7 @@ static void HandleInputChooseAction(u32 battler)
         gActionSelectionCursor[battler] = 3;
         ActionSelectionCreateCursorAt(gActionSelectionCursor[battler], 0);
     }
+#endif
 }
 
 static void Controller_WaitForHealthbox(u32 battler)
